@@ -30,5 +30,5 @@ npm-debug.log
 Thumbs.db
 
 *.mp4
-*.pptx.env
+*.pptx
 .env
