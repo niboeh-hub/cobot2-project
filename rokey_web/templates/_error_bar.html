@@ -1,0 +1,93 @@
+<!-- 활성 에러 워닝 + RESET 버튼 (모든 페이지 공통) -->
+<style>
+  .error-bar {
+    display: none;
+    position: fixed;
+    left: 24px;
+    bottom: 20px;
+    max-width: calc(100vw - 220px);
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    border-radius: 10px;
+    color: #b91c1c;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 999;
+  }
+  .error-bar.show { display: inline-flex; }
+  .error-bar .dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid #b91c1c;
+    display: grid; place-items: center;
+    font-weight: 900;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .reset-btn {
+    position: fixed;
+    right: 24px;
+    bottom: 20px;
+    padding: 10px 22px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: background 0.16s ease;
+    z-index: 999;
+  }
+  .reset-btn:hover { background: #f3f4f6; }
+</style>
+
+<div class="error-bar" id="error-bar">
+  <div class="dot">!</div>
+  <span id="error-text"></span>
+</div>
+
+<button class="reset-btn" id="reset-btn">RESET</button>
+
+<script type="module">
+  import { initializeApp } from
+    "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, remove } from
+    "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    databaseURL: "https://rokey-d-2-1f6ab-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+
+  // 이미 다른 부품에서 초기화된 경우를 대비
+  let app;
+  try {
+    app = initializeApp(firebaseConfig, 'errorbar');
+  } catch (e) {
+    app = initializeApp(firebaseConfig);
+  }
+  const db = getDatabase(app);
+  const errorRef = ref(db, 'active_error');
+
+  const errorBar = document.getElementById('error-bar');
+  const errorText = document.getElementById('error-text');
+
+  onValue(errorRef, (snap) => {
+    const data = snap.val();
+    if (data && data.message) {
+      const t = data.occurred_at || '';
+      const src = data.source ? ` (${data.source})` : '';
+      errorText.textContent = `[${t}] ${data.message}${src}`;
+      errorBar.classList.add('show');
+    } else {
+      errorBar.classList.remove('show');
+    }
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    remove(errorRef);
+  });
+</script>

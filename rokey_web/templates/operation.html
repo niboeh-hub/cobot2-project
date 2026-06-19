@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROKEY - Operation</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --ink: #1a1d23;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --hover: #f3f4f6;
+      --idle: #6b7280;
+      --idle-bg: #f3f4f6;
+      --running: #4f46e5;
+      --running-bg: #eef2ff;
+      --success: #16a34a;
+      --success-bg: #ecfdf5;
+      --aborted: #b91c1c;
+      --aborted-bg: #fef2f2;
+      --mic-off: #ffffff;
+      --mic-on: #dc2626;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic",
+                    system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .page {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .back-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .back-btn:hover { background: var(--hover); color: var(--ink); }
+    .stop-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--aborted);
+      background: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--aborted);
+      display: none;
+    }
+    .stop-btn:hover {
+      background: var(--aborted-bg);
+    }
+    .logo {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-left: 8px;
+    }
+    .sub {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .big-timer {
+      font-family: "Consolas", monospace;
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      padding: 4px 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      min-width: 180px;
+      text-align: center;
+    }
+    .big-timer.active { color: var(--running); }
+
+    .clock {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-family: "Consolas", monospace;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      overflow: hidden;
+    }
+
+    .left {
+      display: flex;
+      flex-direction: column;
+      padding: 20px 24px;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .video-area {
+      aspect-ratio: 1 / 1;
+      height: 100%;
+      max-height: calc(100vh - 200px);
+      align-self: center;
+      background: #0f1115;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .video-area .placeholder {
+      text-align: center;
+      color: #9ca3af;
+      padding: 40px;
+    }
+    .video-area .placeholder .icon {
+      font-size: 48px;
+      margin-bottom: 14px;
+      opacity: 0.6;
+    }
+    .video-area .placeholder .msg {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #d1d5db;
+    }
+    .video-area .placeholder .hint {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+    .video-area img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .video-area .live-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      padding: 4px 10px;
+      background: var(--mic-on);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .video-area .live-tag .pulse {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #fff;
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    .voice-area {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: 78px 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+    .mic-btn {
+      width: 78px;
+      height: 78px;
+      border-radius: 50%;
+      border: 2px solid var(--line);
+      background: var(--mic-off);
+      cursor: pointer;
+      font-size: 32px;
+      display: grid;
+      place-items: center;
+      transition: all 0.16s ease;
+      color: var(--muted);
+    }
+    .mic-btn:hover { background: var(--hover); }
+    .mic-btn.on {
+      background: var(--mic-on);
+      border-color: var(--mic-on);
+      color: #fff;
+      animation: micPulse 1.4s infinite;
+    }
+    @keyframes micPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+      50%      { box-shadow: 0 0 0 14px rgba(220, 38, 38, 0); }
+    }
+    .voice-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .voice-state {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .voice-state.listening { color: var(--mic-on); }
+    .voice-hint {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .voice-status {
+      font-size: 14px;
+      color: var(--running);
+      font-weight: 700;
+      margin-top: 4px;
+      display: none;
+    }
+    .voice-last {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 600;
+      margin-top: 4px;
+      padding: 6px 10px;
+      background: var(--idle-bg);
+      border-radius: 6px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .voice-last.hidden { display: none; }
+
+    .right {
+      border-left: 1px solid var(--line);
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-section {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-section h3 {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .phase-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .phase-badge.idle    { background: var(--idle-bg);    color: var(--idle); }
+    .phase-badge.running { background: var(--running-bg); color: var(--running); }
+    .phase-badge.verifying { background: #fef3c7; color: #b45309; }
+    .phase-badge.success { background: var(--success-bg); color: var(--success); }
+    .phase-badge.aborted { background: var(--aborted-bg); color: var(--aborted); }
+
+    .phase-message {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .seq {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip {
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #fff;
+      opacity: 0.4;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .chip.active {
+      opacity: 1;
+      transform: scale(1.06);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+    }
+    .chip.done { opacity: 1; }
+    .chip.red   { background: #dc2626; }
+    .chip.green { background: #16a34a; }
+    .chip.blue  { background: #2563eb; }
+    .chip.other { background: #6b7280; }
+
+    .progress-text {
+      font-family: "Consolas", monospace;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+    .progress-text .of {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .target-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .target-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .recent {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .recent-item {
+      display: flex;
+      gap: 10px;
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .recent-item .t {
+      font-family: "Consolas", monospace;
+      color: var(--muted);
+      font-size: 12px;
+      min-width: 70px;
+    }
+    .recent-item .e { flex: 1; }
+    .recent-empty {
+      padding: 28px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <div class="header-left">
+        <button class="back-btn" id="back-btn">← 메인</button>
+        <button class="stop-btn" id="stop-btn">■ 임무 종료</button>
+        <div class="logo">ROKEY</div>
+        <div class="sub">/ 임무 수행</div>
+      </div>
+      <div class="big-timer" id="big-timer">00:00.0</div>
+      <div class="clock">
+        🕐 <span id="clock-time">--:--:--</span>
+      </div>
+    </header>
+
+    <div class="body">
+
+      <div class="left">
+        <div class="video-area" id="video-area">
+          <div class="placeholder" id="video-placeholder">
+            <div class="icon">📷</div>
+            <div class="msg">임무 대기 중</div>
+            <div class="hint">마이크 버튼을 누르고 "헬로 로키 ~색 연결해"라고 말하세요</div>
+          </div>
+        </div>
+
+        <div class="voice-area">
+          <button class="mic-btn" id="mic-btn" type="button">🎙</button>
+          <div class="voice-info">
+            <div class="voice-state" id="voice-state">마이크 대기</div>
+            <div class="voice-hint" id="voice-hint">
+              버튼을 눌러 음성 명령을 시작하세요
+            </div>
+            <div class="voice-status" id="voice-status"></div>
+            <div class="voice-last hidden" id="voice-last"></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="right">
+
+        <div class="panel-section">
+          <h3>현재 단계</h3>
+          <span class="phase-badge idle" id="phase-badge">대기 중</span>
+          <div class="phase-message" id="phase-message">대기 중</div>
+        </div>
+
+        <div class="panel-section">
+          <h3>요청 순서</h3>
+          <div class="seq" id="requested-seq">
+            <span style="color: var(--muted); font-size: 13px;">아직 없음</span>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>현재 진행</h3>
+          <div class="target-row">
+            <span class="target-label">타겟</span>
+            <span id="current-target" style="font-size: 14px; color: var(--muted); font-weight: 700;">-</span>
+          </div>
+          <div class="target-row" style="margin-top: 8px;">
+            <span class="target-label">진행도</span>
+            <span class="progress-text">
+              <span id="progress-cur">0</span>
+              <span class="of">/</span>
+              <span id="progress-total">0</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>연결 완료</h3>
+          <div class="seq" id="connected-seq">
+            <span style="color: var(--muted); font-size: 13px;">아직 없음</span>
+          </div>
+        </div>
+
+        <div class="panel-section" style="padding-bottom: 8px;">
+          <h3>최근 로봇 동작</h3>
+        </div>
+        <div class="recent" id="recent-events">
+          <div class="recent-empty">아직 동작 없음</div>
+        </div>
+
+      </aside>
+
+    </div>
+  </div>
+
+  {% include '_error_bar.html' %}
+
+  <script>
+    function tickClock() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('clock-time').textContent = `${hh}:${mm}:${ss}`;
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+  <script>
+    // ===========================================================
+    // ROS bridge — /mode_select 토픽 발행용
+    // ===========================================================
+    const ROSBRIDGE_URL = 'ws://localhost:9090';
+    const ros = new ROSLIB.Ros({ url: ROSBRIDGE_URL });
+
+    const modeSelectTopic = new ROSLIB.Topic({
+      ros: ros,
+      name: '/mode_select',
+      messageType: 'std_msgs/String'
+    });
+
+    ros.on('connection', () => {
+      console.log('LLM Mode: Connected to ROS.');
+      // 페이지 들어오면 LLM 모드 노드 시작 신호
+      modeSelectTopic.publish(new ROSLIB.Message({ data: 'mode3_wire_pick' }));
+      console.log('🚀 [모드 제어] /mode_select -> mode3_wire_pick 발행 완료');
+    });
+
+    // 페이지 나갈 때 stop 신호 발행하는 공통 함수
+    window.publishModeStop = function() {
+      try {
+        modeSelectTopic.publish(new ROSLIB.Message({ data: 'stop' }));
+        console.log('🛑 [모드 제어] /mode_select -> stop 발행');
+      } catch (e) {
+        console.error('stop 발행 실패:', e);
+      }
+    };
+  </script>
+
+  <script type="module">
+    import { initializeApp, getApps } from
+      "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, update, query, limitToLast } from
+      "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      databaseURL: "https://rokey-d-2-1f6ab-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+    const apps = getApps();
+    const app = apps.length ? apps[0] : initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // ===========================================================
+    // 큰 타이머
+    // ===========================================================
+    let timerStart = null;
+    let timerInterval = null;
+    const bigTimer = document.getElementById('big-timer');
+
+    function startBigTimer() {
+      if (timerInterval) return;
+      timerStart = Date.now();
+      bigTimer.classList.add('active');
+      timerInterval = setInterval(() => {
+        const elapsed = (Date.now() - timerStart) / 1000;
+        const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const ss = (elapsed % 60).toFixed(1).padStart(4, '0');
+        bigTimer.textContent = `${mm}:${ss}`;
+      }, 100);
+    }
+    function stopBigTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      bigTimer.classList.remove('active');
+    }
+    function resetBigTimer() {
+      stopBigTimer();
+      bigTimer.textContent = '00:00.0';
+    }
+
+    // ===========================================================
+    // 영상 (D435i)
+    // ===========================================================
+    const VIDEO_URL_OPERATION = 'http://localhost:8080/stream?topic=/yolo/image_with_boxes';
+    const VIDEO_URL_VERIFYING = 'http://localhost:8080/stream?topic=/arrangement_result';
+
+    function showVideo(phase) {
+      const area = document.getElementById('video-area');
+      const placeholder = document.getElementById('video-placeholder');
+
+      const url = (phase === 'verifying') ? VIDEO_URL_VERIFYING : VIDEO_URL_OPERATION;
+
+      if (!url) {
+        placeholder.innerHTML = `
+          <div class="icon">📹</div>
+          <div class="msg">영상 스트림 URL 미설정</div>
+          <div class="hint">operation.html의 VIDEO_URL을 채워주세요</div>
+        `;
+        return;
+      }
+
+      placeholder.style.display = 'none';
+
+      let img = area.querySelector('img');
+      if (!img) {
+        img = document.createElement('img');
+        area.appendChild(img);
+        const tag = document.createElement('div');
+        tag.className = 'live-tag';
+        tag.innerHTML = '<span class="pulse"></span>LIVE';
+        area.appendChild(tag);
+      }
+      if (img.src !== url) {
+        img.src = url;
+      }
+    }
+    
+    function hideVideo() {
+      const area = document.getElementById('video-area');
+      const img = area.querySelector('img');
+      const tag = area.querySelector('.live-tag');
+      if (img) img.remove();
+      if (tag) tag.remove();
+      const placeholder = document.getElementById('video-placeholder');
+      placeholder.style.display = '';
+      placeholder.innerHTML = `
+        <div class="icon">📷</div>
+        <div class="msg">임무 대기 중</div>
+        <div class="hint">마이크 버튼을 누르고 "헬로 로키 ~색 연결해"라고 말하세요</div>
+      `;
+    }
+
+    // ===========================================================
+    // 마이크 토글
+    // ===========================================================
+    const stateRef = ref(db, 'operation_state');
+
+    document.getElementById('mic-btn').addEventListener('click', () => {
+      const btn = document.getElementById('mic-btn');
+      const willTurnOn = !btn.classList.contains('on');
+      update(stateRef, { mic_active: willTurnOn });
+    });
+
+    function applyMicUi(active) {
+      const btn = document.getElementById('mic-btn');
+      const state = document.getElementById('voice-state');
+      const hint = document.getElementById('voice-hint');
+      if (active) {
+        btn.classList.add('on');
+        state.classList.add('listening');
+        state.textContent = '마이크 켜짐';
+        hint.textContent = '"헬로 로키 ~색 연결해" 라고 말하세요';
+      } else {
+        btn.classList.remove('on');
+        state.classList.remove('listening');
+        state.textContent = '마이크 대기';
+        hint.textContent = '버튼을 눌러 음성 명령을 시작하세요';
+      }
+    }
+
+    // ===========================================================
+    // 색 칩
+    // ===========================================================
+    function colorClass(c) {
+      return ['red','green','blue'].includes(c) ? c : 'other';
+    }
+    function buildSeq(arr, targetIdx) {
+      if (!arr || arr.length === 0) {
+        return '<span style="color: var(--muted); font-size: 13px;">아직 없음</span>';
+      }
+      return arr.map((c, i) => {
+        let extra = '';
+        if (targetIdx !== null && targetIdx !== undefined) {
+          if (i < targetIdx) extra = 'done';
+          else if (i === targetIdx) extra = 'active';
+        } else {
+          extra = 'done';
+        }
+        return `<span class="chip ${colorClass(c)} ${extra}">${c.toUpperCase()}</span>`;
+      }).join('');
+    }
+
+    function showResultOverlay(phase, message) {
+      const existing = document.getElementById('result-overlay');
+      if (existing) existing.remove();
+
+      if (phase !== 'success' && phase !== 'aborted') return;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'result-overlay';
+      const isSuccess = phase === 'success';
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+      `;
+
+      const card = document.createElement('div');
+      card.style.cssText = `
+        background: #fff;
+        border-radius: 16px;
+        padding: 48px 64px;
+        text-align: center;
+        max-width: 600px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      `;
+      const icon = isSuccess ? '✓' : '✗';
+      const color = isSuccess ? 'var(--success)' : 'var(--aborted)';
+      const label = isSuccess ? '임무 성공' : '임무 중단';
+
+      card.innerHTML = `
+        <div style="font-size: 80px; color: ${color}; font-weight: 900; margin-bottom: 16px;">
+          ${icon}
+        </div>
+        <div style="font-size: 28px; font-weight: 900; color: ${color}; margin-bottom: 12px;">
+          ${label}
+        </div>
+        <div style="font-size: 14px; color: var(--muted); margin-bottom: 28px; max-width: 480px;">
+          ${message || ''}
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <button id="overlay-close" style="
+            padding: 12px 24px;
+            border: 1px solid var(--line);
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+          ">확인</button>
+          <button id="overlay-logs" style="
+            padding: 12px 24px;
+            border: none;
+            background: var(--running);
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+          ">로그 보기</button>
+        </div>
+      `;
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+
+      // 확인 버튼 — stop 신호도 같이 발행
+      document.getElementById('overlay-close').addEventListener('click', async () => {
+        overlay.remove();
+        if (typeof window.publishModeStop === 'function') {
+          window.publishModeStop();
+        }
+        try {
+          await fetch('/api/abort_operation', { method: 'POST' });
+        } catch (e) {
+          console.error('abort 실패:', e);
+        }
+      });
+      document.getElementById('overlay-logs').addEventListener('click', () => {
+        location.href = '/logs';
+      });
+    }
+
+    // ===========================================================
+    // operation_state 실시간 구독
+    // ===========================================================
+    let prevPhase = null;
+
+    onValue(stateRef, (snap) => {
+      const s = snap.val() || {};
+      console.log('[op] state:', s);
+
+      applyMicUi(!!s.mic_active);
+
+      const phase = s.phase || 'idle';
+      const badge = document.getElementById('phase-badge');
+      badge.className = `phase-badge ${phase}`;
+      const phaseLabel = {
+        idle: '대기 중', running: '진행 중',
+        verifying: '검사 중',
+        success: '성공', aborted: '중단',
+      }[phase] || phase;
+      badge.textContent = phaseLabel;
+      document.getElementById('phase-message').textContent =
+        s.message || phaseLabel;
+
+      document.getElementById('stop-btn').style.display =
+        (phase === 'running' || phase === 'verifying') ? 'inline-block' : 'none';
+      const isActive = (phase === 'running' || phase === 'verifying');
+      const wasActive = (prevPhase === 'running' || prevPhase === 'verifying');
+
+      if (isActive && !wasActive) {
+        startBigTimer();
+      }
+      if (isActive) {
+        showVideo(phase);
+      }
+      if (!isActive && wasActive) {
+        stopBigTimer();
+        setTimeout(() => {
+          hideVideo();
+        }, 5000);
+      }
+      if (phase === 'idle' && prevPhase === null) {
+        resetBigTimer();
+      }
+
+      prevPhase = phase;
+
+      showResultOverlay(phase, s.message);
+
+      const req = s.requested_sequence || [];
+      const curIdx = (typeof s.current_index === 'number') ? s.current_index : 0;
+      document.getElementById('requested-seq').innerHTML =
+        buildSeq(req, phase === 'running' ? curIdx : null);
+
+      document.getElementById('current-target').textContent =
+        s.current_target ? s.current_target.toUpperCase() : '-';
+      document.getElementById('progress-cur').textContent =
+        req.length === 0 ? '0' : Math.min(curIdx, req.length);
+      document.getElementById('progress-total').textContent = req.length;
+
+      document.getElementById('connected-seq').innerHTML =
+        buildSeq(s.connected_sequence || [], null);
+
+      const vs = document.getElementById('voice-status');
+      if (s.voice_status) {
+        vs.textContent = s.voice_status;
+        vs.style.display = 'block';
+        if (s.voice_status.includes('⚠') || s.voice_status.includes('인식하지 못')) {
+          vs.style.color = 'var(--aborted)';
+        } else {
+          vs.style.color = 'var(--running)';
+        }
+      } else {
+        vs.style.display = 'none';
+      }
+
+      const last = document.getElementById('voice-last');
+      if (s.last_voice_text) {
+        last.textContent = `"${s.last_voice_text}"`;
+        last.classList.remove('hidden');
+      } else {
+        last.classList.add('hidden');
+      }
+    });
+
+    // ===========================================================
+    // 최근 로봇 이벤트
+    // ===========================================================
+    const eventsQ = query(ref(db, 'robot_events'), limitToLast(5));
+    onValue(eventsQ, (snap) => {
+      const data = snap.val() || {};
+      const items = Object.values(data);
+      items.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+      const box = document.getElementById('recent-events');
+      if (items.length === 0) {
+        box.innerHTML = '<div class="recent-empty">아직 동작 없음</div>';
+        return;
+      }
+      box.innerHTML = items.map(it => {
+        const t = (it.timestamp || '').split('T')[1] || '';
+        const type = it.event_type || '?';
+        const detail = it.detail
+          ? Object.entries(it.detail).map(([k,v]) =>
+              `${k}=${JSON.stringify(v)}`).join(' ')
+          : '';
+        return `
+          <div class="recent-item">
+            <div class="t">${t}</div>
+            <div class="e"><b>${type}</b> ${detail}</div>
+          </div>
+        `;
+      }).join('');
+    });
+
+    // ===========================================================
+    // 메인 가기 — stop 신호 발행 후 이동
+    // ===========================================================
+    document.getElementById('back-btn').addEventListener('click', async () => {
+      if (prevPhase === 'running' || prevPhase === 'verifying') {
+        if (!confirm('임무가 진행 중입니다. 정말 나가시겠습니까?')) return;
+      }
+      if (typeof window.publishModeStop === 'function') {
+        window.publishModeStop();
+      }
+      try {
+        await fetch('/api/abort_operation', { method: 'POST' });
+      } catch (e) {
+        console.error('abort 실패:', e);
+      }
+      // stop 신호 전달 시간 확보
+      setTimeout(() => {
+        location.href = '/';
+      }, 300);
+    });
+
+    // ===========================================================
+    // 임무 종료 버튼 — stop 신호 + abort
+    // ===========================================================
+    document.getElementById('stop-btn').addEventListener('click', async () => {
+      if (!confirm('진행 중인 임무를 종료하시겠습니까?')) return;
+      try {
+        if (typeof window.publishModeStop === 'function') {
+          window.publishModeStop();
+        }
+        await fetch('/api/abort_operation', { method: 'POST' });
+      } catch (e) {
+        console.error('임무 종료 실패:', e);
+        alert('임무 종료 중 오류가 발생했습니다.');
+      }
+    });
+  </script>
+</body>
+</html>

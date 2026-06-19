@@ -1,0 +1,34 @@
+# ── Python ────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+env/
+.env
+
+# ── ROS 2 (Colcon) ──────────────────
+build/
+install/
+log/
+
+# ── YOLO & Vision Outputs ───────────
+pose_output/
+runs/
+# yolov8 가중치 파일은 용량이 크므로 추적을 원치 않으시면 아래 주석을 해제하세요
+# *.pt 
+
+# ── Node.js / PM2 ───────────────────
+node_modules/
+npm-debug.log
+
+# ── IDE & OS ────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+*.mp4
+*.pptx.env
+.env

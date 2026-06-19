@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROKEY</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --ink: #1a1d23;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --op-bg: #eef2ff;
+      --op-border: #c7d2fe;
+      --op-accent: #4f46e5;
+      --hand-bg: #fff7ed;
+      --hand-border: #fed7aa;
+      --hand-accent: #ea580c;
+      --shadow-bg: #faf5ff;
+      --shadow-border: #e9d5ff;
+      --shadow-accent: #9333ea;
+      --log-bg: #ecfdf5;
+      --log-border: #bbf7d0;
+      --log-accent: #16a34a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic",
+                    system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .page {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 40px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .logo {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .clock {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      font-family: "Consolas", monospace;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .clock .ic {
+      font-size: 18px;
+      color: var(--muted);
+    }
+
+    .body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: min(520px, 90%);
+    }
+    .card {
+      border-radius: 16px;
+      padding: 28px 32px;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid;
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.06);
+    }
+    .card .icon {
+      font-size: 44px;
+      margin-bottom: 10px;
+    }
+    .card h2 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .card p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .card-op    { background: var(--op-bg);     border-color: var(--op-border); }
+    .card-op    .icon { color: var(--op-accent); }
+    .card-hand  { background: var(--hand-bg);   border-color: var(--hand-border); }
+    .card-hand  .icon { color: var(--hand-accent); }
+    .card-shadow{ background: var(--shadow-bg); border-color: var(--shadow-border); }
+    .card-shadow .icon { color: var(--shadow-accent); }
+    .card-log   { background: var(--log-bg);    border-color: var(--log-border); }
+    .card-log   .icon { color: var(--log-accent); }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <div class="logo">ROKEY</div>
+      <div class="clock">
+        <span class="ic">🕐</span>
+        <span id="clock-time">--:--:--</span>
+      </div>
+    </header>
+
+    <main class="body">
+      <div class="cards">
+        <div class="card card-op" onclick="location.href='/operation'">
+          <div class="icon">🎙️</div>
+          <h2>LLM Mode</h2>
+          <p>음성 명령으로 와이어 색 순서를 입력</p>
+        </div>
+        <div class="card card-hand" onclick="location.href='/hand_operation'">
+          <div class="icon">✋</div>
+          <h2>Hand Mode</h2>
+          <p>손 제스처로 로봇팔을 직접 조종</p>
+        </div>
+        <div class="card card-shadow" onclick="location.href='/shadow_operation'">
+          <div class="icon">👥</div>
+          <h2>Shadow Mode</h2>
+          <p>캘리브레이션 없이 바로 손 따라가기</p>
+        </div>
+        <div class="card card-log" onclick="location.href='/logs'">
+          <div class="icon">📋</div>
+          <h2>View Logs</h2>
+          <p>작업 로그 및 이력 조회</p>
+        </div>
+      </div>
+    </main>
+
+    {% include '_error_bar.html' %}
+
+  </div>
+
+  <script>
+    function tickClock() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('clock-time').textContent = `${hh}:${mm}:${ss}`;
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+  </script>
+</body>
+</html>

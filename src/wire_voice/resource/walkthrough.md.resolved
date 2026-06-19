@@ -1,0 +1,32 @@
+# `wire_voice_seg` 패키지 구성 및 실행 방법
+
+새롭게 생성된 `wire_voice_seg` 패키지는 음성 인식 기반의 타겟 와이어 지정 및 실시간 YOLO 세그멘테이션 기능을 제공합니다. 기존의 최단거리 및 각도 계산 로직을 배제하고, 음성 키워드와 색상 타겟팅을 직접적으로 연동했습니다.
+
+## 주요 기능 (voice_yolo_seg 노드)
+
+1. **실시간 카메라 디스플레이**: `/camera/camera/color/image_raw` 토픽을 수신하여 YOLO 세그멘테이션 결과를 화면에 표시합니다.
+2. **음성 인식 트리거 (`v` 키)**: OpenCV 화면이 포커스된 상태에서 키보드 `v`를 누르면, 백그라운드에서 비동기적으로 `/get_wire_keyword` 서비스(음성 인식)를 호출합니다.
+3. **타겟 시각화**: 인식된 "파란선", "빨간선", "초록선" 중 하나에 해당하는 YOLO 객체(`blue`, `red`, `green`)를 찾아 **TARGET** 글씨와 함께 크고 굵게 하이라이트합니다.
+
+## 실행 방법
+
+1. 워크스페이스에서 패키지를 빌드합니다.
+```bash
+cd ~/cobot_ws
+colcon build --packages-select wire_voice_seg
+source install/setup.bash
+```
+
+2. 먼저, 이전 단계에서 만들었던 **음성 인식 노드를 실행**해 둡니다. (이 노드가 `/get_wire_keyword` 서비스를 제공합니다)
+```bash
+ros2 run wire_voice_control get_wire_keyword
+```
+
+3. **새로운 터미널**에서 방금 만든 YOLO 세그멘테이션 노드를 실행합니다.
+```bash
+source install/setup.bash
+ros2 run wire_voice_seg voice_yolo_seg
+```
+
+4. 띄워진 **카메라 화면을 마우스로 클릭하여 활성화**한 후, **`v` 키**를 누르세요. 터미널에 `음성 인식 서비스를 호출합니다...` 로그가 뜨면 "hello rokey"를 말하고 "파란선을 지정해줘" 와 같이 명령을 내립니다.
+5. 음성 인식이 완료되면 카메라 화면에 **TARGET: BLUE** 표시가 활성화되는 것을 확인할 수 있습니다! 화면을 끄려면 `q` 키를 누르세요.

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROKEY - Logs</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --ink: #1a1d23;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --line-strong: #d1d5db;
+      --hover: #f3f4f6;
+      --selected: #eef2ff;
+      --selected-border: #c7d2fe;
+      --success: #16a34a;
+      --success-bg: #ecfdf5;
+      --aborted: #b91c1c;
+      --aborted-bg: #fef2f2;
+      --voice: #4f46e5;
+      --robot: #0891b2;
+      --error: #dc2626;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic",
+                    system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .page {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== 헤더 ===== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 32px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .back-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .back-btn:hover { background: var(--hover); color: var(--ink); }
+    .logo {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .clock {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-family: "Consolas", monospace;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    /* ===== 본문: 좌우 분할 ===== */
+    .body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      overflow: hidden;
+    }
+
+    /* === 왼쪽: 임무 목록 === */
+    .list-panel {
+      border-right: 1px solid var(--line);
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-head h2 {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .panel-head .count {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .list-scroll {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .op-row {
+      display: grid;
+      grid-template-columns: 40px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+    .op-row:hover { background: var(--hover); }
+    .op-row.selected {
+      background: var(--selected);
+      border-left: 3px solid var(--selected-border);
+      padding-left: 17px;
+    }
+    .op-id {
+      font-family: "Consolas", monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .op-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .op-time {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: "Consolas", monospace;
+    }
+    .op-elapsed {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .op-result {
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .op-result.success {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+    .op-result.aborted {
+      background: var(--aborted-bg);
+      color: var(--aborted);
+    }
+    .empty-list {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* === 오른쪽: 상세 === */
+    .detail-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 상세 - 요약 카드 */
+    .summary {
+      padding: 24px 28px;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+    .summary-top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .summary-top h1 {
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+    .summary-cell label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .summary-cell .v {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .summary-cell .v.mono {
+      font-family: "Consolas", monospace;
+    }
+    .seq {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .seq .chip {
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #fff;
+    }
+    .chip.red   { background: #dc2626; }
+    .chip.green { background: #16a34a; }
+    .chip.blue  { background: #2563eb; }
+    .chip.other { background: #6b7280; }
+
+    /* 상세 - 타임라인 */
+    .timeline-wrap {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .timeline-head {
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+    }
+    .timeline-head h3 {
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .timeline-head .legend {
+      display: flex;
+      gap: 14px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .timeline-head .legend span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .lg-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .lg-dot.v { background: var(--voice); }
+    .lg-dot.r { background: var(--robot); }
+    .lg-dot.e { background: var(--error); }
+
+    .timeline {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 28px 80px;
+    }
+    .tl-item {
+      display: grid;
+      grid-template-columns: 90px 28px 1fr;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .tl-time {
+      font-family: "Consolas", monospace;
+      font-size: 12px;
+      color: var(--muted);
+      padding-top: 3px;
+    }
+    .tl-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      color: #fff;
+      font-weight: 800;
+    }
+    .tl-icon.voice { background: var(--voice); }
+    .tl-icon.robot { background: var(--robot); }
+    .tl-icon.error { background: var(--error); }
+    .tl-body .tl-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .tl-body .tl-detail {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+      word-break: break-word;
+    }
+    .tl-body .tl-detail .k {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .tl-empty {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .detail-empty {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <div class="header-left">
+        <button class="back-btn" onclick="location.href='/'">← 메인</button>
+        <div class="logo">ROKEY</div>
+        <div class="sub">/ 작업 로그</div>
+      </div>
+      <div class="clock">
+        🕐 <span id="clock-time">--:--:--</span>
+      </div>
+    </header>
+
+    <div class="body">
+
+      <aside class="list-panel">
+        <div class="panel-head">
+          <h2>임무 기록</h2>
+          <span class="count" id="op-count">0건</span>
+        </div>
+        <div class="list-scroll" id="op-list">
+          <div class="empty-list">불러오는 중...</div>
+        </div>
+      </aside>
+
+      <section class="detail-panel" id="detail-panel">
+        <div class="detail-empty">왼쪽에서 임무를 선택하세요</div>
+      </section>
+
+    </div>
+  </div>
+
+  {% include '_error_bar.html' %}
+
+  <script type="module">
+    import { initializeApp, getApps } from
+      "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, get } from
+      "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      databaseURL: "https://rokey-d-2-1f6ab-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+    const apps = getApps();
+    const app = apps.length ? apps[0] : initializeApp(firebaseConfig);
+    const fbDb = getDatabase(app);
+
+    window.fbDb = fbDb;
+    window.fbRef = ref;
+    window.fbGet = get;
+  </script>
+
+  <script>
+    function tickClock() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('clock-time').textContent =
+        `${hh}:${mm}:${ss}`;
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+
+    function colorChip(c) {
+      const cls = ['red','green','blue'].includes(c) ? c : 'other';
+      return `<span class="chip ${cls}">${c.toUpperCase()}</span>`;
+    }
+    function seqHtml(arr) {
+      if (!arr || arr.length === 0) return '<span class="v">-</span>';
+      return `<div class="seq">${arr.map(colorChip).join('')}</div>`;
+    }
+
+    function shortTime(iso) {
+      if (!iso) return '-';
+      const t = iso.split('T')[1];
+      return t || iso;
+    }
+    function shortDate(iso) {
+      if (!iso) return '-';
+      return iso.replace('T', ' ');
+    }
+
+    let operations = [];
+    let selectedId = null;
+
+    async function loadOperations() {
+      const res = await fetch('/api/operations');
+      operations = await res.json();
+      renderOpList();
+
+      if (operations.length > 0) {
+        selectOp(operations[0].operation_id);
+      }
+    }
+
+    function renderOpList() {
+      const list = document.getElementById('op-list');
+      document.getElementById('op-count').textContent =
+        `${operations.length}건`;
+
+      if (operations.length === 0) {
+        list.innerHTML = '<div class="empty-list">아직 임무 기록이 없습니다</div>';
+        return;
+      }
+
+      list.innerHTML = operations.map(op => {
+        const isSel = op.operation_id === selectedId ? 'selected' : '';
+        const elapsed = op.elapsed_sec
+          ? `${op.elapsed_sec.toFixed(1)}s` : '-';
+        return `
+          <div class="op-row ${isSel}" onclick="selectOp(${op.operation_id})">
+            <div class="op-id">#${op.operation_id}</div>
+            <div class="op-meta">
+              <div class="op-time">${shortDate(op.start_time)}</div>
+              <div class="op-elapsed">${elapsed}</div>
+            </div>
+            <div class="op-result ${op.result}">
+              ${op.result === 'success' ? '성공' : '중단'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function selectOp(id) {
+      selectedId = id;
+      renderOpList();
+
+      const op = operations.find(o => o.operation_id === id);
+      if (!op) return;
+
+      const panel = document.getElementById('detail-panel');
+      panel.innerHTML = renderSummary(op) + renderTimelineFrame();
+
+      const events = await loadTimelineFor(id);
+      renderTimelineItems(events);
+    }
+
+    function renderSummary(op) {
+      const reason = op.reason
+        ? `<span class="v">${op.reason}</span>`
+        : '<span class="v" style="color:#9ca3af;">-</span>';
+      return `
+        <div class="summary">
+          <div class="summary-top">
+            <h1>임무 #${op.operation_id}</h1>
+            <div class="op-result ${op.result}">
+              ${op.result === 'success' ? '성공' : '중단'}
+            </div>
+          </div>
+          <div class="summary-grid">
+            <div class="summary-cell">
+              <label>시작</label>
+              <div class="v mono">${shortDate(op.start_time)}</div>
+            </div>
+            <div class="summary-cell">
+              <label>종료</label>
+              <div class="v mono">${shortDate(op.end_time)}</div>
+            </div>
+            <div class="summary-cell">
+              <label>소요 시간</label>
+              <div class="v mono">
+                ${op.elapsed_sec ? op.elapsed_sec.toFixed(2) + 's' : '-'}
+              </div>
+            </div>
+            <div class="summary-cell">
+              <label>중단 사유</label>
+              ${reason}
+            </div>
+            <div class="summary-cell" style="grid-column: span 2;">
+              <label>요청 순서</label>
+              ${seqHtml(op.requested_sequence)}
+            </div>
+            <div class="summary-cell" style="grid-column: span 2;">
+              <label>연결 완료</label>
+              ${seqHtml(op.connected_sequence)}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTimelineFrame() {
+      return `
+        <div class="timeline-wrap">
+          <div class="timeline-head">
+            <h3>활동 타임라인</h3>
+            <div class="legend">
+              <span><span class="lg-dot v"></span>음성</span>
+              <span><span class="lg-dot r"></span>로봇</span>
+              <span><span class="lg-dot e"></span>에러</span>
+            </div>
+          </div>
+          <div class="timeline" id="timeline">
+            <div class="tl-empty">불러오는 중...</div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadTimelineFor(opId) {
+      const voiceSnap = await window.fbGet(
+        window.fbRef(window.fbDb, 'voice_logs'));
+      const robotSnap = await window.fbGet(
+        window.fbRef(window.fbDb, 'robot_events'));
+
+      const events = [];
+
+      const v = voiceSnap.val() || {};
+      Object.values(v).forEach(item => {
+        if (item.operation_id === opId) {
+          events.push({
+            type: 'voice',
+            timestamp: item.timestamp,
+            data: item,
+          });
+        }
+      });
+
+      const r = robotSnap.val() || {};
+      Object.values(r).forEach(item => {
+        if (item.operation_id === opId) {
+          events.push({
+            type: item.event_type === 'error' ? 'error' : 'robot',
+            timestamp: item.timestamp,
+            data: item,
+          });
+        }
+      });
+
+      events.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      return events;
+    }
+
+    function renderTimelineItems(events) {
+      const tl = document.getElementById('timeline');
+      if (!events || events.length === 0) {
+        tl.innerHTML =
+          '<div class="tl-empty">이 임무에 기록된 활동이 없습니다</div>';
+        return;
+      }
+
+      tl.innerHTML = events.map(ev => {
+        const time = shortTime(ev.timestamp);
+        if (ev.type === 'voice') {
+          const d = ev.data;
+          return `
+            <div class="tl-item">
+              <div class="tl-time">${time}</div>
+              <div class="tl-icon voice">🎙</div>
+              <div class="tl-body">
+                <div class="tl-title">음성 명령</div>
+                <div class="tl-detail">
+                  <span class="k">원문:</span> ${d.raw_text || '-'}<br>
+                  <span class="k">추출:</span>
+                  ${(d.requested_sequence || []).join(' → ') || '-'}
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          const d = ev.data;
+          const iconCls = ev.type === 'error' ? 'error' : 'robot';
+          const icon = ev.type === 'error' ? '!' : '🤖';
+          const title = ev.type === 'error'
+            ? `에러 (${d.event_type})`
+            : `로봇: ${d.event_type}`;
+          const detailStr = d.detail
+            ? Object.entries(d.detail)
+                .map(([k, v]) => `<span class="k">${k}:</span> ${JSON.stringify(v)}`)
+                .join('&nbsp;&nbsp;')
+            : '-';
+          return `
+            <div class="tl-item">
+              <div class="tl-time">${time}</div>
+              <div class="tl-icon ${iconCls}">${icon}</div>
+              <div class="tl-body">
+                <div class="tl-title">${title}</div>
+                <div class="tl-detail">${detailStr}</div>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+    }
+
+    window.selectOp = selectOp;
+    loadOperations();
+  </script>
+</body>
+</html>
